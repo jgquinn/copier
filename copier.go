@@ -3,6 +3,7 @@ package copier
 import (
 	"database/sql"
 	"database/sql/driver"
+	"encoding/json"
 	"errors"
 	"reflect"
 )
@@ -182,8 +183,17 @@ func set(to, from reflect.Value) bool {
 			if err != nil {
 				return false
 			}
-			if vstr, ok := val.(string); ok && toKind == reflect.String {
-				to.SetString(vstr)
+			if vstr, ok := val.(string); ok {
+				if toKind == reflect.String {
+					to.SetString(vstr)
+				} else if toKind == reflect.Map {
+					m := make(map[string]string)
+					err := json.Unmarshal([]byte(vstr), &m)
+					if err != nil {
+						return false
+					}
+					to.Set(reflect.ValueOf(m))
+				}
 			} else {
 				return false
 			}
