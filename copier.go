@@ -5,6 +5,7 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
 )
 
@@ -197,6 +198,8 @@ func set(to, from reflect.Value) bool {
 			} else {
 				return false
 			}
+		} else if stringer, ok := from.Addr().Interface().(fmt.Stringer); ok && toKind == reflect.String {
+			to.SetString(stringer.String())
 		} else if from.Kind() == reflect.Ptr {
 			return set(to, from.Elem())
 		} else {
