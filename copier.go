@@ -175,6 +175,14 @@ func set(to, from reflect.Value) bool {
 			to = to.Elem()
 		}
 
+		var valuer driver.Valuer
+		var stringer fmt.Stringer
+		if from.CanAddr() {
+			fromAddrIf := from.Addr().Interface()
+			valuer, _ = fromAddrIf.(driver.Valuer)
+			stringer, _ = fromAddrIf.(fmt.Stringer)
+		}
+
 		if from.Type().ConvertibleTo(toType) {
 			to.Set(from.Convert(toType))
 		} else if scanner, ok := to.Addr().Interface().(sql.Scanner); ok {
@@ -188,7 +196,7 @@ func set(to, from reflect.Value) bool {
 			if err != nil {
 				return false
 			}
-		} else if valuer, ok := from.Addr().Interface().(driver.Valuer); ok {
+		} else if valuer != nil {
 			val, err := valuer.Value()
 			if err != nil {
 				return false
@@ -207,7 +215,7 @@ func set(to, from reflect.Value) bool {
 			} else {
 				return false
 			}
-		} else if stringer, ok := from.Addr().Interface().(fmt.Stringer); ok && toKind == reflect.String {
+		} else if stringer != nil {
 			to.SetString(stringer.String())
 		} else if from.Kind() == reflect.Ptr {
 			return set(to, from.Elem())
