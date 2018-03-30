@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 // Copy copy things
@@ -160,21 +161,29 @@ func indirectType(reflectType reflect.Type) reflect.Type {
 
 func set(to, from reflect.Value) bool {
 	toKind := to.Kind()
+	toType := to.Type()
+
 	if from.IsValid() {
 		if toKind == reflect.Ptr {
 			//set `to` to nil if from is nil
 			if from.Kind() == reflect.Ptr && from.IsNil() {
-				to.Set(reflect.Zero(to.Type()))
+				to.Set(reflect.Zero(toType))
 				return true
 			} else if to.IsNil() {
-				to.Set(reflect.New(to.Type().Elem()))
+				to.Set(reflect.New(toType.Elem()))
 			}
 			to = to.Elem()
 		}
 
-		if from.Type().ConvertibleTo(to.Type()) {
-			to.Set(from.Convert(to.Type()))
+		if from.Type().ConvertibleTo(toType) {
+			to.Set(from.Convert(toType))
 		} else if scanner, ok := to.Addr().Interface().(sql.Scanner); ok {
+			if strings.HasSuffix(toType.PkgPath(), "nulls") {
+				vstr := from.String()
+				if len(vstr) < 1 {
+					return true
+				}
+			}
 			err := scanner.Scan(from.Interface())
 			if err != nil {
 				return false
