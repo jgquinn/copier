@@ -2,6 +2,7 @@ package copier
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"errors"
 	"reflect"
 )
@@ -156,8 +157,9 @@ func indirectType(reflectType reflect.Type) reflect.Type {
 }
 
 func set(to, from reflect.Value) bool {
+	toKind := to.Kind()
 	if from.IsValid() {
-		if to.Kind() == reflect.Ptr {
+		if toKind == reflect.Ptr {
 			//set `to` to nil if from is nil
 			if from.Kind() == reflect.Ptr && from.IsNil() {
 				to.Set(reflect.Zero(to.Type()))
@@ -173,6 +175,16 @@ func set(to, from reflect.Value) bool {
 		} else if scanner, ok := to.Addr().Interface().(sql.Scanner); ok {
 			err := scanner.Scan(from.Interface())
 			if err != nil {
+				return false
+			}
+		} else if valuer, ok := from.Addr().Interface().(driver.Valuer); ok {
+			val, err := valuer.Value()
+			if err != nil {
+				return false
+			}
+			if vstr, ok := val.(string); ok && toKind == reflect.String {
+				to.SetString(vstr)
+			} else {
 				return false
 			}
 		} else if from.Kind() == reflect.Ptr {
