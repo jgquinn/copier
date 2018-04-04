@@ -183,16 +183,32 @@ func set(to, from reflect.Value) bool {
 			stringer, _ = fromAddrIf.(fmt.Stringer)
 		}
 
+		var vstr string
+
+		if from.Kind() == reflect.Map { //&& toKind == reflect.String {
+			jsonbytes, merr := json.Marshal(from.Interface())
+			if merr == nil {
+				vstr = string(jsonbytes)
+			}
+		}
+
 		if from.Type().ConvertibleTo(toType) {
 			to.Set(from.Convert(toType))
 		} else if scanner, ok := to.Addr().Interface().(sql.Scanner); ok {
+			var err error
 			if strings.HasSuffix(toType.PkgPath(), "nulls") {
-				vstr := from.String()
+				if vstr == "" {
+					vstr = from.String()
+				}
 				if len(vstr) < 1 {
 					return true
 				}
 			}
-			err := scanner.Scan(from.Interface())
+			if vstr != "" {
+				err = scanner.Scan(vstr)
+			} else {
+				err = scanner.Scan(from.Interface())
+			}
 			if err != nil {
 				return false
 			}
