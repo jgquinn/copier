@@ -230,6 +230,15 @@ func set(to, from reflect.Value) bool {
 						return false
 					}
 					to.Set(reflect.ValueOf(m))
+				} else if toKind == reflect.Slice {
+					if toType.Elem().Kind() == reflect.String {
+						var sl []string
+						err := json.Unmarshal([]byte(vstr), &sl)
+						if err != nil {
+							return false
+						}
+						to.Set(reflect.ValueOf(sl))
+					}
 				}
 			} else {
 				return false
