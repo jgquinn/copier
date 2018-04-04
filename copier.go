@@ -160,6 +160,7 @@ func indirectType(reflectType reflect.Type) reflect.Type {
 }
 
 func set(to, from reflect.Value) bool {
+	fromKind := from.Kind()
 	toKind := to.Kind()
 	toType := to.Type()
 
@@ -185,10 +186,12 @@ func set(to, from reflect.Value) bool {
 
 		var vstr string
 
-		if from.Kind() == reflect.Map { //&& toKind == reflect.String {
-			jsonbytes, merr := json.Marshal(from.Interface())
-			if merr == nil {
-				vstr = string(jsonbytes)
+		if fromKind == reflect.Map || fromKind == reflect.Slice {
+			if !from.IsNil() {
+				jsonbytes, merr := json.Marshal(from.Interface())
+				if merr == nil {
+					vstr = string(jsonbytes)
+				}
 			}
 		}
 
@@ -197,7 +200,7 @@ func set(to, from reflect.Value) bool {
 		} else if scanner, ok := to.Addr().Interface().(sql.Scanner); ok {
 			var err error
 			if strings.HasSuffix(toType.PkgPath(), "nulls") {
-				if vstr == "" {
+				if vstr == "" && !(fromKind == reflect.Map || fromKind == reflect.Slice) {
 					vstr = from.String()
 				}
 				if len(vstr) < 1 {
@@ -233,7 +236,7 @@ func set(to, from reflect.Value) bool {
 			}
 		} else if stringer != nil {
 			to.SetString(stringer.String())
-		} else if from.Kind() == reflect.Ptr {
+		} else if fromKind == reflect.Ptr {
 			return set(to, from.Elem())
 		} else {
 			return false
