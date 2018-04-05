@@ -10,6 +10,11 @@ import (
 	"strings"
 )
 
+type pbTimestamp interface {
+	GetSeconds() int64
+	GetNanos() int32
+}
+
 // Copy copy things
 func Copy(toValue interface{}, fromValue interface{}) (err error) {
 	var (
@@ -174,6 +179,14 @@ func set(to, from reflect.Value) bool {
 				to.Set(reflect.New(toType.Elem()))
 			}
 			to = to.Elem()
+		}
+
+		if to.CanAddr() {
+			toAddrIf := to.Addr().Interface()
+			if _, ok := toAddrIf.(pbTimestamp); ok {
+				// NOTE: leaving protobuf conversions to consumers for now
+				return true
+			}
 		}
 
 		var valuer driver.Valuer
