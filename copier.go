@@ -189,6 +189,14 @@ func set(to, from reflect.Value) bool {
 			}
 		}
 
+		if from.CanAddr() {
+			fromAddrIf := from.Addr().Interface()
+			if _, ok := fromAddrIf.(pbTimestamp); ok {
+				// NOTE: leaving protobuf conversions to consumers for now
+				return true
+			}
+		}
+
 		var valuer driver.Valuer
 		var stringer fmt.Stringer
 		if from.CanAddr() {
